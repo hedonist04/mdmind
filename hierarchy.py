@@ -1,49 +1,59 @@
 from pathlib import Path
-from dataclasses import dataclass
-import pathlib
 import json
 
-@dataclass
+
 class Archive:
     """
-    Archive представляет директорию, организованную из папок, хранящих различные заметки,
-    а также файлы прилагающиеся к ним.
+    Archive представляет директорию, организованную из папок, хранящих различные 
+    заметки, а также файлы прилагающиеся к ним.
     """
-    path: Path
-    description: str
+
+    def __init__(self, path: str | Path, description: str=''):
+        self.path = Path(path).absolute()
+        self.description = description
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(str(self.path))
 
     def __repr__(self):
         return str(self.path)
 
 
+class MindFile:
+    """
+    MindFile представляет общую информацию об имеющихся архивах в виде JSON 
+    файла, он служит для их отслеживания и организации.
+    """
 
-class Mind:
-    """
-    Mind представляет общую информацию об имеющихся архивах в виде json файла, он служит
-    для их отслеживания и организации.
-    """
-    def __init__(self, path='mind.json'):
+    def __init__(self, path: str | Path = 'mind.json'):
         self.path = Path(path).absolute()
-        with open(path) as f:
-            d = json.load(f)
 
-        self.archives = []
-        for e in d:
-            desc = d['descris']
+    def read(self) -> set[Archive]:
+        with open(self.path) as f:
+            dicts = json.load(f)
 
-            self.archives.append(
-                Archive(Path(e['path']).absolute(), e['description'])
+        archives = set()
+        for d in dicts:
+            archives.add(
+                Archive(Path(d['path']), d['description'])
+            )
+        return archives
+
+    def write(self, archives):
+        dicts = []
+        for a in archives:
+            dicts.append(
+                {'path': str(a.path), 'description': a.description}
             )
 
-    def remove(self, archive: str | Archive):
-        ...
+        with open(self.path, 'w+') as f:
+            json.dump(dicts, f, indent=4)
 
-    def write(self):
-        ...
-
-    def __str__(self):
-        return str(self.archives)
 
 
 if __name__ == '__main__':
-    print(Mind())
+    a = Archive('tmp')
+    print(list(a.path.glob('**/*')))
